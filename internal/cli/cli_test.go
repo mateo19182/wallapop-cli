@@ -1604,3 +1604,22 @@ func TestSearchWatchDeduplicatesRepeatedItemsWithinCheck(t *testing.T) {
 		t.Fatalf("second check should be silent: %s", r.stdout)
 	}
 }
+
+func TestItemReactivateReportsIncompleteOwnershipLookup(t *testing.T) {
+	h := newHarness(t)
+	h.login()
+	h.fake.UserItemsPageSize = 1
+	for i := 0; i < 51; i++ {
+		h.fake.AddItem(fakewallapop.Item{Hash: fmt.Sprintf("%012d", i), Title: "Expired", Seller: fakewallapop.UserHash, Expired: true})
+	}
+	r := h.run("", "item", "reactivate", "000000000050")
+	if r.code != 2 || !strings.Contains(r.stderr, "first 50 pages") {
+		t.Fatalf("expected an explicit lookup cap, got exit %d stderr %q", r.code, r.stderr)
+	}
+	if n := len(h.fake.RequestsUnder("/api/v3/user/items")); n != 50 {
+		t.Fatalf("expected bounded lookup of 50 pages, saw %d", n)
+	}
+	if n := len(h.fake.RequestsUnder("/api/v3/items/000000000050/reactivate")); n != 0 {
+		t.Fatalf("incomplete ownership lookup must not write, saw %d requests", n)
+	}
+}
