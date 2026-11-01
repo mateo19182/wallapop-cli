@@ -262,7 +262,7 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 		meta := map[string]any{}
 		if n := s.UserItemsPageSize; n > 0 && p != "/api/v3/user/items/favorited" {
 			start, _ := strconv.Atoi(r.URL.Query().Get("since"))
-			start = min(start, len(data))
+			start = min(max(start, 0), len(data))
 			end := min(start+n, len(data))
 			if end < len(data) {
 				meta["next"] = strconv.Itoa(end)
