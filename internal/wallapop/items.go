@@ -113,6 +113,7 @@ func (c *Client) MyItem(ctx context.Context, ref string) (Item, error) {
 		return Item{}, badItemRef(ref)
 	}
 	next := ""
+	more := false
 	for page := 0; page < maxOwnItemPages; page++ {
 		mine, cursor, err := c.userItemsPage(ctx, "/api/v3/user/items", next, true, "")
 		if err != nil {
@@ -123,10 +124,14 @@ func (c *Client) MyItem(ctx context.Context, ref string) (Item, error) {
 				return it, nil
 			}
 		}
-		if cursor == "" || cursor == next {
+		more = cursor != "" && cursor != next
+		if !more {
 			break
 		}
 		next = cursor
+	}
+	if more {
+		return Item{}, Usage("%s was not found in the first %d pages of your listings", ref, maxOwnItemPages)
 	}
 	return Item{}, Usage("%s is not one of your listings (see `wallapop me items`)", ref)
 }
